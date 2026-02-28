@@ -1,96 +1,81 @@
+from dataclasses import dataclass, field
+from typing import List, Dict
+
+
+@dataclass
 class Category:
-    def __init__(self, name):
-        self.name = name
-        self.ledger = []
+    name: str
+    ledger: List[Dict[str, float]] = field(default_factory=list)
 
     def __str__(self):
-    # Title centered with stars, total width = 30
         title = "\n" + self.name.center(40, "*") + "\n"
 
         items = ""
         for value in self.ledger:
-            # Description max 23 characters (truncate if longer)
             desc = value["description"][:30]
-
-            # Amount right aligned, 2 decimal places, width 7
             amount = f"${value['amount']:.2f}"
-
-            """ 
-            Format:
-            The description is pushed to the left (<) in a 23-character space, 
-            and the amount is pushed to the right (>) in a 7-character space.
-            """
             items += f"{desc:<30}{amount:>10}\n"
 
         total = f"\nTotal: {f'${self.get_balance():.2f}':>33}\n"
-
         return title + items + total
 
-
-    def deposit(self, amount, desc=""): 
-        if not isinstance(amount, (int, float)):
-            raise TypeError("Amount must be a number")
-
-        if not isinstance(desc, str):
-            raise TypeError("Description must be a string")
-
-        self.ledger.append(
-            {
-            "amount": amount,
-            "description": desc
-            }
-        )
-        return True
-    
-    # Loop through the list
-    # Access each dictionary
-    # Get its "amount"
-    # Add them together
     def get_balance(self):
-        total = 0
-        for value in self.ledger:
-            total += value["amount"]
-        return total
-    
-    def withdraw(self, amount, desc=""):
-        balance = self.get_balance()
-        if not isinstance(amount, (int, float)):
-            raise TypeError("Amount must be a number")
-
-        if not isinstance(desc, str):
-            raise TypeError("Description must be a string")
-        
-        if self.check_funds(amount):
-            self.ledger.append({"amount": -amount, "description": desc})
-            return True
-        return False
-    
-    def transfer(self, amount, receiver, desc=""):
-        balance = self.get_balance()
-
-        if not isinstance(amount, (int, float)):
-            raise TypeError("Amount must be a number")
-
-        if not isinstance(desc, str):
-            raise TypeError("Description must be a string")
-
-        if self.check_funds(amount):
-            # Withdraw from sender
-            self.withdraw(amount, f"Transfer to {receiver.name}")
-            # Deposit into receiver
-            receiver.deposit(amount, f"Transfer from {self.name}")
-            return True
-        return False
+        return sum(value["amount"] for value in self.ledger)
 
     def check_funds(self, amount):
-        balance = self.get_balance()
         if not isinstance(amount, (int, float)):
-            raise TypeError("Amount must be a number")
+            raise TypeError("Amount must be a Number")
 
-        if amount > balance:
+        if amount > self.get_balance():
             return False
-        
         return True
+
+    def deposit(self, amount, desc=""):
+        if not isinstance(amount, (int, float)):
+            raise TypeError("Amount must be a Number")
+
+        if not isinstance(desc, str):
+            raise TypeError("Description must be a string")
+
+        if amount < 0:
+            raise ValueError("Amount must be greater than 0")
+
+        self.ledger.append({
+            "amount": amount,
+            "description": desc
+        })
+
+        return True
+
+    def withdraw(self, amount, desc=""):
+        if not isinstance(amount, (int, float)):
+            raise TypeError("Amount must be a Number")
+
+        if not isinstance(desc, str):
+            raise TypeError("Description must be a string")
+
+        if self.check_funds(amount):
+            self.ledger.append({
+                "amount": -amount,
+                "description": desc
+            })
+            return True
+
+        return False
+
+    def transfer(self, amount, receiver, desc=""):
+        if not isinstance(amount, (int, float)):
+            raise TypeError("Amount must be a Number")
+
+        if not isinstance(desc, str):
+            raise TypeError("Description must be a string")
+
+        if self.check_funds(amount):
+            self.withdraw(amount, f"Transfer to {receiver.name}")
+            receiver.deposit(amount, f"Transfer from {self.name}")
+            return True
+
+        return False
 
 # We are creating a function: It takes a list of Category objects (like Food, Clothing, Auto).
 def create_spend_chart(categories):
@@ -144,8 +129,7 @@ def create_spend_chart(categories):
                 line += "   "
         chart += line + "\n"
 
-    return title + chart.rstrip("\n")
-
+    return title + chart
 
 # Use case
 food = Category('Food')
@@ -170,3 +154,5 @@ auto.deposit(1000)
 auto.withdraw(15)
 
 print(create_spend_chart([food, clothing, auto]))
+
+
